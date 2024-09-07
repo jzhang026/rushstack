@@ -9,6 +9,8 @@ import type {
   CommandLineStringParameter
 } from '@rushstack/ts-command-line';
 
+import * as argparse from 'argparse';
+
 import type { RushConfiguration } from '../../api/RushConfiguration';
 import type { RushConfigurationProject } from '../../api/RushConfigurationProject';
 import { Selection } from '../../logic/Selection';
@@ -40,22 +42,24 @@ interface ISelectionParameterSetOptions {
 export class SelectionParameterSet {
   private readonly _rushConfiguration: RushConfiguration;
 
-  private readonly _fromProject: CommandLineStringListParameter;
-  private readonly _impactedByProject: CommandLineStringListParameter;
-  private readonly _impactedByExceptProject: CommandLineStringListParameter;
-  private readonly _onlyProject: CommandLineStringListParameter;
-  private readonly _toProject: CommandLineStringListParameter;
-  private readonly _toExceptProject: CommandLineStringListParameter;
-  private readonly _subspaceParameter: CommandLineStringParameter | undefined;
+  private _fromProject!: CommandLineStringListParameter;
+  private _impactedByProject!: CommandLineStringListParameter;
+  private _impactedByExceptProject!: CommandLineStringListParameter;
+  private _onlyProject!: CommandLineStringListParameter;
+  private _toProject!: CommandLineStringListParameter;
+  private _toExceptProject!: CommandLineStringListParameter;
+  private _subspaceParameter: CommandLineStringParameter | undefined;
 
-  private readonly _fromVersionPolicy: CommandLineStringListParameter;
-  private readonly _toVersionPolicy: CommandLineStringListParameter;
+  private _fromVersionPolicy!: CommandLineStringListParameter;
+  private _toVersionPolicy!: CommandLineStringListParameter;
 
   private readonly _selectorParserByScope: Map<string, ISelectorParser<RushConfigurationProject>>;
 
+  private _parameterDefined = false;
+
   public constructor(
     rushConfiguration: RushConfiguration,
-    action: CommandLineParameterProvider,
+    action: CommandLineParameterProvider | null,
     options: ISelectionParameterSetOptions
   ) {
     const { gitOptions, includeSubspaceSelector } = options;
@@ -90,7 +94,17 @@ export class SelectionParameterSet {
 
       return completions;
     };
+    if (action) {
+      this._defineActionParameter(action, includeSubspaceSelector, getSpecifierCompletions);
+    }
+  }
 
+  private _defineActionParameter(
+    action: CommandLineParameterProvider,
+    includeSubspaceSelector: boolean,
+    getSpecifierCompletions?: () => Promise<string[]>
+  ) {
+    this._parameterDefined = true;
     this._toProject = action.defineStringListParameter({
       parameterLongName: '--to',
       parameterShortName: '-t',
@@ -473,5 +487,14 @@ export class SelectionParameterSet {
     }
 
     return selection;
+  }
+
+  public defineParameters(includeSubspaceSelector: boolean) {
+    if (this._parameterDefined) {
+      throw new Error('"parameter" of Rush Selectors already defined within Rush CLI');
+    }
+    const argparser = new argparse();
+    let parameterProvider = new CommandLineParameterProvider();
+    this._defineActionParameter(parameterProvider, includeSubspaceSelector);
   }
 }
