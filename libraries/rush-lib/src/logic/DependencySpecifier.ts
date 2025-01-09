@@ -175,4 +175,8 @@ export class DependencySpecifier {
         throw new InternalError(`Unexpected npm-package-arg result type "${specifierType}"`);
     }
   }
+
+  get isWorkspaceSpecifier() {
+    return this.specifierType === DependencySpecifierType.Workspace;
+  }
 }

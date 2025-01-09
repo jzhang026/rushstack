@@ -417,6 +417,13 @@ export class RushConfigurationProject {
             // Skip if we can't find the local project or it's a cyclic dependency
             const localProject: RushConfigurationProject | undefined =
               this.rushConfiguration.getProjectByName(dependencyName);
+            if (
+              localProject &&
+              !dependencySpecifier.isWorkspaceSpecifier &&
+              __EXPERIMENTAL_CONFIG_EXEMPT_DECOUPLED_LOCAL_DEPENDENCIES__
+            ) {
+              this.decoupledLocalDependencies.add(dependencyName);
+            }
             if (localProject && !this.decoupledLocalDependencies.has(dependency)) {
               // Set the value if it's a workspace project, or if we have a local project and the semver is satisfied
               switch (dependencySpecifier.specifierType) {
